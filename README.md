@@ -9,3 +9,5 @@ As a result QA team can file a bug to specified build without playing with JIRA 
 
 ## ToDo
 * prcechowywanie ID RemoteVersion, wyświetlanie linka do wersji w JENKINSIE.
+* bugi zamykane do wersji widoczne w Jenkinsie (tak, jak Changes do rewizji na jenkins/job/JOB_NAME/BUILD_NUMBER)
+
