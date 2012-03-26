@@ -1,17 +1,19 @@
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
-  <f:entry title="URL" help="${rootURL}/plugin/jiraVersionRelease/help-projectConfig.html">
-    <f:textbox field="url" />
-  </f:entry>
-  <f:entry title="Username">
-    <f:textbox field="user" />
-  </f:entry>
-  <f:entry title="Password">
-    <f:password field="pass" />
-  </f:entry>
-  <f:entry title="Project key">
-    <f:textbox field="projectKey" />
-  </f:entry>
-  <f:entry title="Version prefix (regular expression)">
-    <f:textbox field="prefixRegexp" />
-  </f:entry>
+<f:section title="JIRA" help="${rootURL}/plugin/jiraVersionRelease/help-config.html">
+    <f:entry name="instanceName" field="instanceName" title="URL" help="${rootURL}/plugin/jiraVersionRelease/help-instanceName.html">
+        <select name="instanceName">
+            <j:forEach var="i" items="${descriptor.instances}">
+                <option value="${i.instanceName}" selected="${i.instanceName==instance.instanceName}">${i.instanceName}</option>
+            </j:forEach>
+        </select>
+    </f:entry>
+
+    <f:entry title="Project key" help="${rootURL}/plugin/jiraVersionRelease/help-projectKey.html">
+        <f:textbox field="projectKey" />
+    </f:entry>
+
+    <f:entry title="Version prefix (regular expression)" help="${rootURL}/plugin/jiraVersionRelease/help-prefixRegexp.html">
+        <f:textbox name="prefixRegexp" value="${instance.prefixRegexp}" />
+    </f:entry>
+</f:section>
 </j:jelly>

@@ -1,11 +1,38 @@
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
-  <f:entry title="URL" help="${rootURL}/plugin/jiraVersionRelease/help-globaltConfig.html">
-    <f:textbox field="url" />
-  </f:entry>
-  <f:entry title="Username">
-    <f:textbox field="user" />
-  </f:entry>
-  <f:entry title="Password">
-    <f:password field="pass" />
-  </f:entry>
+
+    <f:section title="JIRA" help="${rootURL}/plugin/jiraVersionRelease/help-globalConfig.html">
+
+        <f:entry title="${%JIRA sites}" description="">
+            <f:repeatable name="jirasite" var="site" items="${descriptor.instances}">
+                <table width="100%">
+
+                    <f:entry title="instanceName" help="${rootURL}/plugin/jiraVersionRelease/help-instanceName.html">
+                        <f:textbox name="instanceName" value="${site.instanceName}" />
+                    </f:entry>
+
+                    <f:entry title="URL" help="${rootURL}/plugin/jiraVersionRelease/help-url.html">
+                        <f:textbox name="url" value="${site.url}" />
+                    </f:entry>
+
+                    <f:entry title="${%User Name}" help="${rootURL}/plugin/jiraVersionRelease/help-login.html">
+                        <f:textbox name="user" value="${site.user}" />
+                    </f:entry>
+
+                    <f:entry title="${%Password}" description="${%username.password.description}">
+                        <input class="setting-input" name="pass"
+                                type="password" value="${site.pass}"
+                                onchange="Form.findMatchingInput(this,'user').onchange()" />
+                    </f:entry>
+
+                    <f:entry title="">
+                        <div align="right">
+                            <f:repeatableDeleteButton />
+                        </div>
+                    </f:entry>
+
+                </table>
+            </f:repeatable>
+        </f:entry>
+
+    </f:section>
 </j:jelly>
