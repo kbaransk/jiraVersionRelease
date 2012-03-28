@@ -32,6 +32,7 @@ import pl.kbaranski.hudson.jiraVersionRelease.soap.JiraSoapServiceServiceLocator
 import pl.kbaranski.hudson.jiraVersionRelease.soap.RemoteAuthenticationException;
 import pl.kbaranski.hudson.jiraVersionRelease.soap.RemoteException;
 import pl.kbaranski.hudson.jiraVersionRelease.soap.RemoteVersion;
+import pl.kbaranski.hudson.jiraVersionRelease.Messages;
 
 public class JiraVersionReleasePublisher extends Notifier {
 
@@ -212,13 +213,11 @@ public class JiraVersionReleasePublisher extends Notifier {
 
 		@Override
 		public String getDisplayName() {
-			return "JIRA Version Releaser";
+			return Messages.displayName();
 		}
 
 		@Override
 		public String getHelpFile() {
-			LOG.info("Domyślny helpFile : " + super.getHelpFile());
-			LOG.info("Id : " + getId());
 			return "/plugin/jiraVersionRelease/help-config.html";
 		}
 
