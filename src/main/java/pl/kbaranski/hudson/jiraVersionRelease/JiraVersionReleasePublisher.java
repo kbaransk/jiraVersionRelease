@@ -12,7 +12,6 @@ import hudson.tasks.Publisher;
 import hudson.util.CopyOnWriteList;
 
 import java.util.logging.Logger;
-import java.util.regex.Pattern;
 
 import javax.xml.rpc.ServiceException;
 
@@ -22,16 +21,26 @@ import pl.kbaranski.hudson.jiraVersionRelease.soap.RemoteAuthenticationException
 import pl.kbaranski.hudson.jiraVersionRelease.soap.RemoteException;
 import pl.kbaranski.hudson.jiraVersionRelease.soap.RemoteVersion;
 
+/**
+ * Main class of Hudson / Jenkins plugin that is responsible for
+ * 
+ * @author Krzysztof Barański
+ * @since 1.0
+ */
 public class JiraVersionReleasePublisher extends Notifier {
 
+    /** User-friendly name of the instance selected for specified job by user. */
     private String instanceName;
 
+    /** Key that specifies project in JIRA. */
     private String projectKey;
 
+    /** Regular expression that defines version name schema in JIRA. */
     private String prefixRegexp;
 
     public static final DescriptorImpl DESCRIPTOR = new DescriptorImpl();
 
+    /** Logger object. */
     private final static Logger LOG = Logger.getLogger(JiraVersionReleasePublisher.class.getName());
 
     @DataBoundConstructor
@@ -62,13 +71,15 @@ public class JiraVersionReleasePublisher extends Notifier {
         return true;
     }
 
+    @Override
     public BuildStepMonitor getRequiredMonitorService() {
         return BuildStepMonitor.BUILD;
     }
 
     public TrackerInstance getCurrentTracker() {
-        if (this.instanceName == null)
+        if (this.instanceName == null) {
             return null;
+        }
         for (TrackerInstance ti : DESCRIPTOR.getInstances()) {
             if (instanceName.equals(ti.getInstanceName())) {
                 return ti;
@@ -77,6 +88,11 @@ public class JiraVersionReleasePublisher extends Notifier {
         return null;
     }
 
+    /**
+     * This method is being invoked when build has finished and it's responsible
+     * for marking as released JIRA version that matches that build and than
+     * creating next version in JIRA (not released). {@inheritDoc}
+     */
     @Override
     public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener) {
 
@@ -129,18 +145,23 @@ public class JiraVersionReleasePublisher extends Notifier {
 
     /**
      * Descriptor for {@link JiraVersionReleasePublisher}. Used as a singleton.
-     * The class is marked as public so that it can be accessed from views.
-     *
-     * <p>
-     * See
-     * <tt>views/hudson/plugins/hello_world/JiraVersionReleasePublisher/*.jelly</tt>
-     * for the actual HTML fragment for the configuration screen.
+     * The class is marked as public so that it can be accessed from views. This
+     * class is also responsible for global configuration (Hudson / Jenkins
+     * wide).
      */
     @Extension
     public static final class DescriptorImpl extends BuildStepDescriptor<Publisher> {
 
+        /**
+         * List of JIRA server instances defined on Hudson / Jenkins global
+         * configuration level. While configuring single job it will be possible
+         * to choose one of these.
+         */
         private final CopyOnWriteList<TrackerInstance> instances = new CopyOnWriteList<TrackerInstance>();
 
+        /**
+         * Constructor that loads current configuration.
+         */
         public DescriptorImpl() {
             super(JiraVersionReleasePublisher.class);
             load();
@@ -161,10 +182,23 @@ public class JiraVersionReleasePublisher extends Notifier {
             return AbstractProject.class.isAssignableFrom(jobType);
         }
 
+        /**
+         * Adds instance to
+         * {@link JiraVersionReleasePublisher.DescriptorImpl#instances} list.
+         * 
+         * @param instance
+         *            JIRA instance data to add.
+         */
         public void setInstances(TrackerInstance instance) {
             instances.add(instance);
         }
 
+        /**
+         * Returns {@link JiraVersionReleasePublisher.DescriptorImpl#instances}.
+         * 
+         * @return Returns
+         *         {@link JiraVersionReleasePublisher.DescriptorImpl#instances}
+         */
         public TrackerInstance[] getInstances() {
             return instances.toArray(new TrackerInstance[instances.size()]);
         }
