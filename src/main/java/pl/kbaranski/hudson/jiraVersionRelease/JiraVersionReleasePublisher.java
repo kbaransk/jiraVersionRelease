@@ -1,25 +1,25 @@
 /*
  * The MIT License
- *
+ * 
  * Copyright (c) 2010-2012, Krzysztof Barański.
- *
+ * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- *
+ * 
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- *
+ * 
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
  */
 package pl.kbaranski.hudson.jiraVersionRelease;
 
@@ -38,7 +38,10 @@ import java.util.logging.Logger;
 
 import javax.xml.rpc.ServiceException;
 
+import net.sf.json.JSONObject;
+
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.StaplerRequest;
 
 import pl.kbaranski.hudson.jiraVersionRelease.soap.RemoteAuthenticationException;
 import pl.kbaranski.hudson.jiraVersionRelease.soap.RemoteException;
@@ -104,7 +107,7 @@ public class JiraVersionReleasePublisher extends Notifier {
             return null;
         }
         for (TrackerInstance ti : DESCRIPTOR.getInstances()) {
-            if (instanceName.equals(ti.getInstanceName())) {
+            if (instanceName.equals(ti.getName())) {
                 return ti;
             }
         }
@@ -224,6 +227,29 @@ public class JiraVersionReleasePublisher extends Notifier {
          */
         public TrackerInstance[] getInstances() {
             return instances.toArray(new TrackerInstance[instances.size()]);
+        }
+
+        private static final String MY_PREFIX = "iraVersionReleasePublisher.";
+
+        @Override
+        public Publisher newInstance(StaplerRequest req, JSONObject formData) throws FormException {
+            JiraVersionReleasePublisher jpp = req.bindParameters(JiraVersionReleasePublisher.class, MY_PREFIX);
+            if (jpp.instanceName == null) {
+                jpp = null; // not configured
+            }
+            return jpp;
+        }
+
+        @Override
+        public boolean configure(StaplerRequest req, JSONObject formData) {
+            LOG.info("configure...");
+            for (Object o : formData.keySet()) {
+                LOG.info("" + o.toString());
+            }
+            instances.replaceBy(req.bindParametersToList(TrackerInstance.class, MY_PREFIX));
+            LOG.info("instances.size() : " + instances.size());
+            save();
+            return true;
         }
     }
 }

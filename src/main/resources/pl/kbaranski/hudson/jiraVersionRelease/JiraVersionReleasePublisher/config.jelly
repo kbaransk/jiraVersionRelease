@@ -1,19 +1,30 @@
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
-<f:section title="${%jira}" help="${rootURL}/plugin/jiraVersionRelease/help-config.html">
-    <f:entry name="instanceName" field="instanceName" title="${%instanceName}" help="${rootURL}/plugin/jiraVersionRelease/help-instanceName.html">
-        <select name="instanceName">
-            <j:forEach var="i" items="${descriptor.instances}">
-                <option value="${i.instanceName}" selected="${i.instanceName==instance.instanceName}">${i.instanceName}</option>
-            </j:forEach>
-        </select>
-    </f:entry>
+    <f:section title="${%jira}" help="${rootURL}/plugin/jiraVersionRelease/help-config.html">
 
-    <f:entry title="${%projectKey}" help="${rootURL}/plugin/jiraVersionRelease/help-projectKey.html">
-        <f:textbox field="projectKey" />
-    </f:entry>
+        <j:choose>
+            <j:when test="${descriptor.instances == null or descriptor.instances.size() == 0}">
+                <f:entry>
+                    ${%no.instances.warn}
+                </f:entry>
+            </j:when>
+            <j:otherwise>
+                <f:entry name="iraVersionReleasePublisher.instanceName" field="instanceName" title="${%instanceName}" help="${rootURL}/plugin/jiraVersionRelease/help-instanceName.html">
+                    <select name="instanceName">
+                        <j:forEach var="i" items="${descriptor.instances}">
+                            <option value="${i.name}" selected="${i.instanceName==instance.name}">${i.name}</option>
+                        </j:forEach>
+                    </select>
+                </f:entry>
 
-    <f:entry title="${%prefixRegexp}" help="${rootURL}/plugin/jiraVersionRelease/help-prefixRegexp.html">
-        <f:textbox name="prefixRegexp" value="${instance.prefixRegexp}" />
-    </f:entry>
-</f:section>
+                <f:entry title="${%projectKey}" help="${rootURL}/plugin/jiraVersionRelease/help-projectKey.html">
+                    <f:textbox name="iraVersionReleasePublisher.projectKey" value="${instance.projectKey}" />
+                </f:entry>
+
+                <f:entry title="${%prefixRegexp}" help="${rootURL}/plugin/jiraVersionRelease/help-prefixRegexp.html">
+                    <f:textbox name="iraVersionReleasePublisher.prefixRegexp" value="${instance.prefixRegexp}" />
+                </f:entry>
+
+            </j:otherwise>
+        </j:choose>
+    </f:section>
 </j:jelly>
