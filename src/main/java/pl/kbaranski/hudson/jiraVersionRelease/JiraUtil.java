@@ -1,29 +1,30 @@
 /*
  * The MIT License
- *
+ * 
  * Copyright (c) 2010-2012, Krzysztof Barański.
- *
+ * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- *
+ * 
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- *
+ * 
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
  */
 package pl.kbaranski.hudson.jiraVersionRelease;
 
 import java.util.Calendar;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -33,9 +34,6 @@ import javax.xml.rpc.ServiceException;
 import pl.kbaranski.hudson.jiraVersionRelease.soap.JiraSoapService;
 import pl.kbaranski.hudson.jiraVersionRelease.soap.JiraSoapServiceService;
 import pl.kbaranski.hudson.jiraVersionRelease.soap.JiraSoapServiceServiceLocator;
-import pl.kbaranski.hudson.jiraVersionRelease.soap.RemoteAuthenticationException;
-import pl.kbaranski.hudson.jiraVersionRelease.soap.RemoteException;
-import pl.kbaranski.hudson.jiraVersionRelease.soap.RemotePermissionException;
 import pl.kbaranski.hudson.jiraVersionRelease.soap.RemoteVersion;
 
 /**
@@ -96,20 +94,32 @@ public class JiraUtil {
         this.prefixRegexp = prefixRegexp;
     }
 
+    public void connectNoLogin() throws JiraException {
+        JiraSoapServiceService serviceLocator = new JiraSoapServiceServiceLocator();
+        // Podłączenie do JIRA
+        try {
+            soapService = serviceLocator.getJirasoapserviceV2(trackerInstance.getUrl());
+        } catch (ServiceException e) {
+            LOG.log(Level.SEVERE, e.getClass().getName() + " while getting JIRA service.", e);
+            throw new JiraException(e);
+        }
+    }
+
     /**
      * Logg in to JIRA SOAP service.
      * 
-     * @throws ServiceException
-     * @throws RemoteAuthenticationException
-     * @throws RemoteException
-     * @throws java.rmi.RemoteException
+     * @throws JiraException
      */
-    public void connect() throws ServiceException, RemoteAuthenticationException, RemoteException,
-            java.rmi.RemoteException {
-        JiraSoapServiceService serviceLocator = new JiraSoapServiceServiceLocator();
-        // Podłączenie do JIRA + logowanie
-        soapService = serviceLocator.getJirasoapserviceV2(trackerInstance.getUrl());
-        soapToken = soapService.login(trackerInstance.getUser(), trackerInstance.getPass());
+    public void connect() throws JiraException {
+        try {
+            if (soapService == null) {
+                connectNoLogin();
+            }
+            soapToken = soapService.login(trackerInstance.getUser(), trackerInstance.getPass());
+        } catch (Exception e) {
+            LOG.log(Level.SEVERE, e.getClass().getName() + " while connecting to JIRA service.", e);
+            throw new JiraException(e);
+        }
     }
 
     /**
@@ -118,23 +128,32 @@ public class JiraUtil {
      * 
      * @param fullName
      *            Name of version to create in JIRA.
-     * @throws RemoteException
-     * @throws java.rmi.RemoteException
+     * @throws JiraException
      */
-    public void createVersion(String fullName) throws RemoteException, java.rmi.RemoteException {
+    public void createVersion(String fullName) throws JiraException {
         // tworzymy nową wersję
         RemoteVersion newVer = new RemoteVersion();
         newVer.setName(fullName);
-        soapService.addVersion(soapToken, projectKey, newVer);
+        try {
+            soapService.addVersion(soapToken, projectKey, newVer);
+        } catch (Exception e) {
+            LOG.log(Level.SEVERE, e.getClass().getName() + " while creating version in JIRA.", e);
+            throw new JiraException(e);
+        }
     }
 
     /**
      * Logouts from JIRA.
      * 
-     * @throws java.rmi.RemoteException
+     * @throws JiraException
      */
-    public void disconnect() throws java.rmi.RemoteException {
-        soapService.logout(soapToken);
+    public void disconnect() throws JiraException {
+        try {
+            soapService.logout(soapToken);
+        } catch (java.rmi.RemoteException e) {
+            LOG.log(Level.SEVERE, "RemoteException while disconnecting from JIRA service.", e);
+            throw new JiraException(e);
+        }
     }
 
     /**
@@ -154,32 +173,33 @@ public class JiraUtil {
      * @param buildNumber
      *            Number of Hudson / Jenkins build.
      * @return Matching version if found, {@code null} otherwise.
-     * @throws RemotePermissionException
-     * @throws RemoteAuthenticationException
-     * @throws RemoteException
-     * @throws java.rmi.RemoteException
+     * @throws JiraException
      */
-    public RemoteVersion getVersion(int buildNumber) throws RemotePermissionException, RemoteAuthenticationException,
-            RemoteException, java.rmi.RemoteException {
+    public RemoteVersion getVersion(int buildNumber) throws JiraException {
         Pattern versionNumberPrefixPattern = Pattern.compile(prefixRegexp);
         String versionNumberFullRegex = prefixRegexp + buildNumber;
 
-        for (RemoteVersion version : soapService.getVersions(soapToken, this.projectKey)) {
-            // Z wersjami wydanymi nic nie chcemy robic
-            if (version.isReleased() || version.isArchived()) {
-                continue;
+        try {
+            for (RemoteVersion version : soapService.getVersions(soapToken, this.projectKey)) {
+                // Z wersjami wydanymi nic nie chcemy robic
+                if (version.isReleased() || version.isArchived()) {
+                    continue;
+                }
+                // Pomijamy również wersje nie pasujące do wzorca
+                if (!Pattern.matches(versionNumberFullRegex, version.getName())) {
+                    continue;
+                }
+                // Teraz wiemy już, że znaleziona wersja, to ta odpowiadająca
+                // poprzednio zbudowanej wersji w Hudson
+                Matcher matcher = versionNumberPrefixPattern.matcher(version.getName());
+                if (matcher.find()) {
+                    jiraVersionNamePrefix = matcher.group();
+                    return version;
+                }
             }
-            // Pomijamy również wersje nie pasujące do wzorca
-            if (!Pattern.matches(versionNumberFullRegex, version.getName())) {
-                continue;
-            }
-            // Teraz wiemy już, że znaleziona wersja, to ta odpowiadająca
-            // poprzednio zbudowanej wersji w Hudson
-            Matcher matcher = versionNumberPrefixPattern.matcher(version.getName());
-            if (matcher.find()) {
-                jiraVersionNamePrefix = matcher.group();
-                return version;
-            }
+        } catch (Exception e) {
+            LOG.log(Level.SEVERE, e.getClass().getName() + " while getting versions from JIRA service.", e);
+            throw new JiraException(e);
         }
         return null;
     }
@@ -189,12 +209,16 @@ public class JiraUtil {
      * 
      * @param version
      *            Version that should be marked as released.
-     * @throws RemoteException
-     * @throws java.rmi.RemoteException
+     * @throws JiraException
      */
-    public void releaseVersion(RemoteVersion version) throws RemoteException, java.rmi.RemoteException {
+    public void releaseVersion(RemoteVersion version) throws JiraException {
         version.setReleased(true);
         version.setReleaseDate(Calendar.getInstance());
-        soapService.releaseVersion(soapToken, projectKey, version);
+        try {
+            soapService.releaseVersion(soapToken, projectKey, version);
+        } catch (Exception e) {
+            LOG.log(Level.SEVERE, e.getClass().getName() + " while releasing version in JIRA.", e);
+            throw new JiraException(e);
+        }
     }
 }

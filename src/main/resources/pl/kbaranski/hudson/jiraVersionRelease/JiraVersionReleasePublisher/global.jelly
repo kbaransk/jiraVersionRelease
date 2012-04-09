@@ -4,29 +4,32 @@
 
         <f:entry title="${%instances}" description="">
             <f:repeatable name="trackerinstance" var="site" items="${descriptor.instances}">
-        <table width="100%">
-          <f:entry title="${%name}" help="${rootURL}/plugin/jiraVersionRelease/help-instanceName.html">
-            <f:textbox name="iraVersionReleasePublisher.name" value="${site.name}" />
-          </f:entry>
-          <f:entry title="${%url}" help="${rootURL}/plugin/jiraVersionRelease/help-url.html">
-            <f:textbox name="iraVersionReleasePublisher.url" value="${site.url}" />
-          </f:entry>
-          <f:entry title="${%login}" help="${rootURL}/plugin/jiraVersionRelease/help-login.html">
-            <f:textbox name="iraVersionReleasePublisher.user" value="${site.user}" />
-          </f:entry>
-          <f:entry title="${%password}"
-              description="${%username.password.description}">
-            <input class="setting-input" name="iraVersionReleasePublisher.pass"
-                   type="password" value="${site.pass}"
-                   onchange="Form.findMatchingInput(this,'iraVersionReleasePublisher.user').onchange()" />
-          </f:entry>
-          <f:entry title="">
-            <div align="right">
-              <f:repeatableDeleteButton />
-            </div>
-          </f:entry>
-        </table>
-      </f:repeatable>
-    </f:entry>
-  </f:section>
+                <table width="100%">
+                    <f:entry title="${%name}" help="${rootURL}/plugin/jiraVersionRelease/help-instanceName.html">
+                        <f:textbox name="iraVersionReleasePublisher.name" value="${site.name}" />
+                    </f:entry>
+                    <f:entry title="${%url}" help="${rootURL}/plugin/jiraVersionRelease/help-url.html">
+                        <f:textbox name="iraVersionReleasePublisher.url" value="${site.url}"
+                                checkMethod="post"
+                                checkUrl="'${rootURL}/publisher/JiraVersionReleasePublisher/urlCheck?value='+escape(this.value)"/>
+                    </f:entry>
+                    <f:entry title="${%login}" help="${rootURL}/plugin/jiraVersionRelease/help-login.html">
+                        <f:textbox name="iraVersionReleasePublisher.user" value="${site.user}"
+                                checkMethod="post"
+                                checkUrl="'${rootURL}/publisher/JiraVersionReleasePublisher/logonCheck?user='+escape(this.value)+'&amp;pass='+escape(Form.findMatchingInput(this,'iraVersionReleasePublisher.pass').value)+'&amp;url='+escape(Form.findMatchingInput(this,'iraVersionReleasePublisher.url').value)"/>
+                    </f:entry>
+                    <f:entry title="${%password}">
+                        <input class="setting-input" name="iraVersionReleasePublisher.pass"
+                                type="password" value="${site.pass}"
+                                onchange="Form.findMatchingInput(this,'iraVersionReleasePublisher.user').onchange()" />
+                    </f:entry>
+                    <f:entry title="">
+                        <div align="right">
+                            <f:repeatableDeleteButton />
+                        </div>
+                    </f:entry>
+                </table>
+            </f:repeatable>
+        </f:entry>
+    </f:section>
 </j:jelly>

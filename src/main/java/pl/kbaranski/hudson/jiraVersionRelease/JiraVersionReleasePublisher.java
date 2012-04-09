@@ -25,6 +25,7 @@ package pl.kbaranski.hudson.jiraVersionRelease;
 
 import hudson.Extension;
 import hudson.Launcher;
+import hudson.Util;
 import hudson.model.BuildListener;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
@@ -33,18 +34,19 @@ import hudson.tasks.BuildStepMonitor;
 import hudson.tasks.Notifier;
 import hudson.tasks.Publisher;
 import hudson.util.CopyOnWriteList;
+import hudson.util.FormValidation;
 
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import javax.xml.rpc.ServiceException;
 
 import net.sf.json.JSONObject;
 
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
 
-import pl.kbaranski.hudson.jiraVersionRelease.soap.RemoteAuthenticationException;
-import pl.kbaranski.hudson.jiraVersionRelease.soap.RemoteException;
 import pl.kbaranski.hudson.jiraVersionRelease.soap.RemoteVersion;
 
 /**
@@ -144,22 +146,8 @@ public class JiraVersionReleasePublisher extends Notifier {
                         "JIRA: W JIRA nie odnaleziono wersji odpowiadającej biezacemu numerowi kopilacji");
             }
             jiraUtil.disconnect();
-        } catch (ServiceException e) {
-            System.out.println(new StringBuilder().append("[").append(e.getClass().getSimpleName()).append("] ")
-                    .append(e.getMessage()).append(": \n").append(e.getStackTrace()).toString());
-        } catch (RemoteAuthenticationException e) {
-            listener.getLogger().println("JIRA: Nie uwierzytelniono uzytkownika");
-            System.out.println(new StringBuilder().append("[").append(e.getClass().getSimpleName()).append("] ")
-                    .append(e.getMessage()).append(": \n").append(e.getStackTrace()).toString());
-        } catch (RemoteException e) {
-            System.out.println(new StringBuilder().append("[").append(e.getClass().getSimpleName()).append("] ")
-                    .append(e.getMessage()).append(": \n").append(e.getStackTrace()).toString());
-        } catch (java.rmi.RemoteException e) {
-            System.out.println(new StringBuilder().append("[").append(e.getClass().getSimpleName()).append("] ")
-                    .append(e.getMessage()).append(": \n").append(e.getStackTrace()).toString());
-        } catch (Exception e) {
-            System.out.println(new StringBuilder().append("[").append(e.getClass().getSimpleName()).append("] ")
-                    .append(e.getMessage()).append(": \n").append(e.getStackTrace()).toString());
+        } catch (JiraException e) {
+            LOG.log(Level.SEVERE, "[JiraException] ", e);
         }
         return false;
     }
@@ -250,6 +238,67 @@ public class JiraVersionReleasePublisher extends Notifier {
             LOG.info("instances.size() : " + instances.size());
             save();
             return true;
+        }
+
+        public FormValidation doLogonCheck(StaplerRequest staplerRequest) {
+
+            LOG.log(Level.INFO, "parametrow : " + staplerRequest.getParameterMap().size());
+            for (Object s : staplerRequest.getParameterMap().keySet()) {
+                LOG.log(Level.INFO, "param name : " + s);
+            }
+            String url = Util.fixEmpty(staplerRequest.getParameter("url"));
+            String user = Util.fixEmpty(staplerRequest.getParameter("user"));
+            String pass = Util.fixEmpty(staplerRequest.getParameter("pass"));
+            LOG.log(Level.INFO, "Logon check. url = " + url + ", user = " + user + ", pass = " + pass);
+            if (url == null || user == null) {
+                // It's impossible to check without url or username
+                FormValidation.ok();
+            }
+
+            try {
+                URL url2 = new URL(url);
+                JiraUtil jiraUtil = new JiraUtil(new TrackerInstance(null, url2, user, pass), null, null);
+                jiraUtil.connect();
+            } catch (MalformedURLException e) {
+                LOG.log(Level.WARNING, "URL validation failed. Conversion to URL ends with " + e.getMessage());
+                FormValidation.error(e.getMessage());
+            } catch (JiraException e) {
+                Throwable cause = e.getCause();
+                if (cause != null && cause.getMessage() != null && !"".equals(cause.getMessage())) {
+                    return FormValidation.error(cause.getMessage());
+                } else {
+                    return FormValidation.error(e.getMessage());
+                }
+            }
+
+            return FormValidation.ok();
+        }
+
+        public FormValidation doUrlCheck(@QueryParameter final String value) {
+            LOG.log(Level.INFO, "     URL validate");
+            String url = Util.fixEmpty(value);
+            if (url == null) {
+                // Empty URL is not a bug...
+                LOG.log(Level.INFO, "No URL specified :(");
+                return FormValidation.ok();
+            }
+            try {
+                URL url2 = new URL(url);
+                JiraUtil jiraUtil = new JiraUtil(new TrackerInstance(null, url2, null, null), null, null);
+                jiraUtil.connectNoLogin();
+            } catch (MalformedURLException e) {
+                LOG.log(Level.WARNING, "URL validation failed. Conversion to URL ends with " + e.getMessage());
+                FormValidation.error(e.getMessage());
+            } catch (JiraException e) {
+                Throwable cause = e.getCause();
+                if (cause != null && cause.getMessage() != null && !"".equals(cause.getMessage())) {
+                    return FormValidation.error(cause.getMessage());
+                } else {
+                    return FormValidation.error(e.getMessage());
+                }
+            }
+
+            return FormValidation.ok();
         }
     }
 }
