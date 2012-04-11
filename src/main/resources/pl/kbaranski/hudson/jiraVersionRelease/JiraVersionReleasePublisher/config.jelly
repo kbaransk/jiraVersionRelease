@@ -8,8 +8,8 @@
                 </f:entry>
             </j:when>
             <j:otherwise>
-                <f:entry name="iraVersionReleasePublisher.instanceName" field="instanceName" title="${%instanceName}" help="${rootURL}/plugin/jiraVersionRelease/help-instanceName.html">
-                    <select name="instanceName">
+                <f:entry name="iraVersionReleasePublisher.instanceName" field="iraVersionReleasePublisher.instanceName" title="${%instanceName}" help="${rootURL}/plugin/jiraVersionRelease/help-instanceName.html">
+                    <select name="iraVersionReleasePublisher.instanceName">
                         <j:forEach var="i" items="${descriptor.instances}">
                             <option value="${i.name}" selected="${i.instanceName==instance.name}">${i.name}</option>
                         </j:forEach>
