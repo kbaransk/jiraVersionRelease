@@ -34,6 +34,7 @@ import javax.xml.rpc.ServiceException;
 import pl.kbaranski.hudson.jiraVersionRelease.soap.JiraSoapService;
 import pl.kbaranski.hudson.jiraVersionRelease.soap.JiraSoapServiceService;
 import pl.kbaranski.hudson.jiraVersionRelease.soap.JiraSoapServiceServiceLocator;
+import pl.kbaranski.hudson.jiraVersionRelease.soap.RemoteProject;
 import pl.kbaranski.hudson.jiraVersionRelease.soap.RemoteVersion;
 
 /**
@@ -138,6 +139,22 @@ public class JiraUtil {
             soapService.addVersion(soapToken, projectKey, newVer);
         } catch (Exception e) {
             LOG.log(Level.SEVERE, e.getClass().getName() + " while creating version in JIRA.", e);
+            throw new JiraException(e);
+        }
+    }
+
+    /**
+     * Gets project with key defined in {@code projectKey} property.
+     * 
+     * @return JIRA project.
+     * @throws JiraException
+     */
+    public RemoteProject getProject() throws JiraException {
+        try {
+            RemoteProject remoteProject = soapService.getProjectByKey(soapToken, projectKey);
+            return remoteProject;
+        } catch (Exception e) {
+            LOG.log(Level.SEVERE, e.getClass().getName() + " while getting project from JIRA.", e);
             throw new JiraException(e);
         }
     }
